@@ -26,10 +26,6 @@ variable "trusted_networks" {
   default = "190.240.66.234/32"
 }
 
-variable "aws_access_key" {
-  default = "AKIAJL2FP2VFK5RH4KDQ"
-}
+variable "aws_access_key" {}
 
-variable "aws_secret_key" {
-  default = "60pOUqScy1QlKI4r2U+eFz0Lc+sLM/ias3Ubl6YE"
-}
+variable "aws_secret_key" {}
