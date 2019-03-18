@@ -1,1 +1,1 @@
-eeeee
+variable "name" {}
