@@ -22,6 +22,11 @@ data "aws_availability_zones" "available" {}
 resource "aws_vpc" "vpc" {
   cidr_block           = "${var.network_address_space}"
   enable_dns_hostnames = "true"
+
+  tags = {
+    Name        = "VPC Alexis"
+    Description = "VPC 10.1.0.0/16"
+  }
 }
 
 resource "aws_internet_gateway" "igw" {
@@ -72,26 +77,34 @@ resource "aws_security_group" "nginx_sg" {
 
 # SSH access from Alexis Laptop
 resource "aws_security_group_rule" "ssh_Alexis" {
-  name              = ""
   type              = "ingress"
   from_port         = 22
   to_port           = 22
   protocol          = "tcp"
-  cidr_blocks       = "${var.trusted_networks}"
+  cidr_blocks       = ["${var.trusted_networks}"]
   security_group_id = "${aws_security_group.nginx_sg.id}"
   description       = "ssh ingress from Alexis laptop"
 }
 
 # HTTP access from anywhere
 resource "aws_security_group_rule" "http_Alexis" {
-  name              = ""
   type              = "ingress"
   from_port         = 80
   to_port           = 80
   protocol          = "tcp"
-  cidr_blocks       = "${var.trusted_networks}"
+  cidr_blocks       = ["${var.trusted_networks}"]
   security_group_id = "${aws_security_group.nginx_sg.id}"
   description       = "http ingress from Alexis laptop"
+}
+
+resource "aws_security_group_rule" "egress_all" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 65535
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = "${aws_security_group.nginx_sg.id}"
+  description       = "All ports open for egress traffic"
 }
 
 # INSTANCES #
@@ -101,17 +114,23 @@ resource "aws_instance" "nginx1" {
   subnet_id              = "${aws_subnet.subnet1.id}"
   vpc_security_group_ids = ["${aws_security_group.nginx_sg.id}"]
 
-  #key_name               = "${var.key_name}"
+  key_name = "${var.key_name}"
 
   connection {
-    user = "ec2-user"
+    agent = true
+    user  = "ec2-user"
 
     #  private_key = "${file(var.private_key_path)}"
   }
+
   provisioner "remote-exec" {
     inline = [
-      "sudo yum install nginx -y",
-      "sudo service nginx start",
+      "sudo amazon-linux-extras install nginx1.12 -y",
+
+      #    "sudo yum install nginx -y",
+      #    "sudo service nginx start",     
+      "systemctl start nginx",
+
       "echo '<html><head><title>Blue Team Server</title></head><body style=\"background-color:#1F778D\"><p style=\"text-align: center;\"><span style=\"color:#FFFFFF;\"><span style=\"font-size:28px;\">Blue Team</span></span></p></body></html>' | sudo tee /usr/share/nginx/html/index.html",
     ]
   }
